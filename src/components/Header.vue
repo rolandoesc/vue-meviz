@@ -39,6 +39,10 @@
       font-family: 'Roboto Slab', serif;
       font-size: 4rem;
     }
+    h4 {
+      font-style: italic;
+      font-size: 1.5rem;
+    }
 
   }
 }
