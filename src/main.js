@@ -4,6 +4,7 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { L } from 'vue2-leaflet'
 import 'leaflet/dist/leaflet.css'
+import VueFire from 'vuefire'
 
 
 // this part resolve an issue where the markers would not appear
@@ -17,7 +18,7 @@ L.Icon.Default.mergeOptions({
 
 
 Vue.config.productionTip = false
-
+Vue.use(VueFire)
 
 
 new Vue({
