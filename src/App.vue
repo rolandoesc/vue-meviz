@@ -1,8 +1,8 @@
 <template>
   <div id="app">
-    <Header></Header>
+    <!-- <Header></Header> -->
     <Map :museums="museums"></Map>
-    <Footer></Footer>
+    <!-- <Footer></Footer> -->
     
   </div>
 </template>

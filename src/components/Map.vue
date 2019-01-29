@@ -64,7 +64,7 @@ export default {
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      tipos: ["TND", "Historia"],
+      tipos: ["Historia"],
       selected: [],
       fixedMuseums: [],
       museumsData: []
@@ -88,19 +88,21 @@ export default {
     this.museumsData = this.museums;
   },
   computed: {
-    
-  },
-  methods: {
     filterByTipo() {
       console.log(this.selected);
+
       // for (let i = 0; i < this.museumsData.length; i++) {
-      //   return this.fixedMuseums.filter(m =>
-      //     m["museo_tematica_n1"] === this.selected[i]
-      //   );
+      return this.fixedMuseums.map(m => {
+        if (this.selected[0] !== "" && m['museo_tematica_n1'] !== this.selected[0]) {
+          m["visible"] = false;
+          return m;
+        }
+      });
 
       // }
     }
-  }
+  },
+  methods: {}
 };
 </script>
 
