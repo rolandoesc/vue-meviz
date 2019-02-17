@@ -2,19 +2,16 @@
   <div id="map">
     <l-map :zoom="zoom" :center="center">
       <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
-      <l-marker
-        :key="marker['museo_id']"
-        v-for="marker in fixedMuseums"
-        :lat-lng="[marker.gmaps_latitud, marker.gmaps_longitud]"
-        :visible="marker['visible']"
-      >
+      <l-marker :key="marker['id']" v-for="marker in filterByTipo" :lat-lng="[marker['lat'], marker['lng']]" :visible="marker['visible']">
         <l-popup>
           <div class="container-fluid">
             <div class="row">
               <div class="col-lg-12">
-                <h4 class="text-center">{{marker['museo_nombre']}}</h4>
-                <p>Ubicación: {{marker['museo_calle_numero']}}, {{marker['museo_colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}</p>
-                <p>Temática: {{marker['museo_tematica_n1']}}</p>
+                <h4 class="text-center">{{marker['nombre']}}</h4>
+                <p>Ubicación: {{marker['calle_numero']}}, {{marker['colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}</p>
+                <p>Temática: {{marker['tematica_n1']}}</p>
+
+
               </div>
             </div>
           </div>
@@ -25,12 +22,10 @@
           <div class="row">
             <div class="col-lg-12">
               <h5 class="text-center">Buscar por Categoría</h5>
-              <div v-for="tipo in tipos" :key="tipo">
+              <div v-for="tipo in topics" :key="tipo">
                 <input
                   type="checkbox"
-                  :name="tipo"
                   :value="tipo"
-                  @click="filterByTipo"
                   v-model="selected"
                 >
                 <label for="tipo">{{tipo}}</label>
@@ -40,6 +35,10 @@
         </div>
       </l-control>
     </l-map>
+    <!-- <button @click="selected">Press</button> -->
+    <pre>
+      {{ $data.selected | json }}
+    </pre>
   </div>
 </template>
 
@@ -47,7 +46,7 @@
 import { LMap, LTileLayer, LMarker, L, LPopup, LControl } from "vue2-leaflet";
 export default {
   name: "Map",
-  props: ["museums"],
+  props: ['museums'],
   // el: "#map",
   components: {
     LMap,
@@ -64,50 +63,44 @@ export default {
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      tipos: ["Historia"],
+      topics : ['Historia', 'TND'],
       selected: [],
-      fixedMuseums: [],
-      museumsData: []
+      selectedMuseums: this.museums
     };
   },
   mounted: function() {
-    // console.log(this.museums)
-    // this.fixedMuseums = this.museumsData
-    // .filter(
-    //   m =>
-    //     m["gmaps_latitud"] !== undefined || m["gmaps_longitud"] !== undefined
-    // )
-    // .map(m => {
-    //   !m["museo_tematica_n1"] ? (m["museo_tematica_n1"] = "TND") : m;
-    //   m['visible'] = true;
-    //   return m;
-    // }
-    // );
-    // return this.fixedMuseums
-    this.fixedMuseums = this.museums;
-    this.museumsData = this.museums;
+    this.$nextTick(() => {
+      this.museums = this.museums.map(m => {
+        !m['tematica_n1'] ? m['tematica_n1'] = 'TND' : m;
+        return m;
+        } )
+      this.museums = this.museums.map(m => {m['visible'] = true
+        return m
+        } )
+      return this.museums;
+    });
   },
   computed: {
-    filterByTipo() {
-      console.log(this.selected);
-
-      // for (let i = 0; i < this.museumsData.length; i++) {
-      return this.fixedMuseums.map(m => {
-        if (this.selected[0] !== "" && m['museo_tematica_n1'] !== this.selected[0]) {
-          m["visible"] = false;
-          return m;
-        }
-      });
-
-      // }
+    filterByTipo: function () {
+      console.log('computing')
+      // return this.selectedMuseums = this.museums.reduce((total, current) => {
+      //   for(let topic of this.selected) {
+      //     current['tematica_n1'] === topic ? total += current : total;
+      //   }
+      //   return total
+      // }, this.museums)
+      // return this.museums.map(m => {
+      //   m['tematica_n1'] !== 'Historia' ? m['visible'] = false : m['visible'] = true;
+      //   return m
+      //   } );
+      return this.selectedMuseums
     }
-  },
-  methods: {}
+  }
 };
 </script>
 
 <style scoped lang="scss">
 #map {
-  height: 50vh;
+  height:50vh;
 }
 </style>
