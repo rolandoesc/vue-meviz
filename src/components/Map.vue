@@ -1,44 +1,23 @@
 <template>
-  <div id="map">
-    <l-map :zoom="zoom" :center="center">
-      <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
-      <l-marker :key="marker['id']" v-for="marker in filterByTipo" :lat-lng="[marker['lat'], marker['lng']]" :visible="marker['visible']">
-        <l-popup>
-          <div class="container-fluid">
-            <div class="row">
-              <div class="col-lg-12">
-                <h4 class="text-center">{{marker['nombre']}}</h4>
-                <p>Ubicación: {{marker['calle_numero']}}, {{marker['colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}</p>
-                <p>Temática: {{marker['tematica_n1']}}</p>
-
-
-              </div>
-            </div>
-          </div>
-        </l-popup>
-      </l-marker>
-      <l-control>
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-lg-12">
-              <h5 class="text-center">Buscar por Categoría</h5>
-              <div v-for="tipo in topics" :key="tipo">
-                <input
-                  type="checkbox"
-                  :value="tipo"
-                  v-model="selected"
-                >
-                <label for="tipo">{{tipo}}</label>
-              </div>
-            </div>
-          </div>
+  <div class="container mt-3 mt-sm-5" id="app">
+    <div class="row">
+      <div class="col-md-9">
+        <div class="map" id="map"></div>
+      </div>
+      <div class="col-md-3">
+        <div class="form-check" v-for="layer in museumsData" :key="layer.id">
+          <label class="form-check-label">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              v-model="layer.active"
+              @change="layerChanged(layer.id, layer.active)"
+            >
+            {{ layer.name }}
+          </label>
         </div>
-      </l-control>
-    </l-map>
-    <!-- <button @click="selected">Press</button> -->
-    <pre>
-      {{ $data.selected | json }}
-    </pre>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -46,7 +25,11 @@
 import { LMap, LTileLayer, LMarker, L, LPopup, LControl } from "vue2-leaflet";
 export default {
   name: "Map",
-  props: ['museums'],
+  props: {
+    museums: {
+      type: Array
+    }
+  },
   // el: "#map",
   components: {
     LMap,
@@ -57,50 +40,97 @@ export default {
   },
   data: function() {
     return {
-      // map: null,
+      map: null,
+      tileLayer: null,
       zoom: 13,
       center: L.latLng(19.432608, -99.133209),
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      topics : ['Historia', 'TND'],
+      topics: ["Historia", "TND"],
       selected: [],
-      selectedMuseums: this.museums
+      museumsData: [],
+      layers: this.museums
     };
   },
-  mounted: function() {
+  mounted() {
     this.$nextTick(() => {
-      this.museums = this.museums.map(m => {
-        !m['tematica_n1'] ? m['tematica_n1'] = 'TND' : m;
-        return m;
-        } )
-      this.museums = this.museums.map(m => {m['visible'] = true
-        return m
-        } )
-      return this.museums;
+      this.museumsData = this.museums;
+      this.initMap();
+      this.initLayers();
+      // this.editData();
     });
   },
-  computed: {
-    filterByTipo: function () {
-      console.log('computing')
-      // return this.selectedMuseums = this.museums.reduce((total, current) => {
-      //   for(let topic of this.selected) {
-      //     current['tematica_n1'] === topic ? total += current : total;
-      //   }
-      //   return total
-      // }, this.museums)
-      // return this.museums.map(m => {
-      //   m['tematica_n1'] !== 'Historia' ? m['visible'] = false : m['visible'] = true;
-      //   return m
-      //   } );
-      return this.selectedMuseums
+  methods: {
+    layerChanged(layerId, active) {
+      const layer = this.layers.find(layer => layer.id === layerId);
+      console.log(layer);
+      layer.features.forEach(feature => {
+        if (active) {
+          feature.leafletObject.addTo(this.map);
+        } else {
+          feature.leafletObject.removeFrom(this.map);
+        }
+      });
+    },
+    initLayers() {
+      // this.museumsData.forEach(layer => {
+      //   layer["museums"].forEach(feature => {
+      //     // L.marker([feature.lat, feature.lng]).bindPopup(feature.nombre);
+      //     this.addMarker(feature);
+      //   });
+      //   console.log(layer);
+      // });
+
+      this.layers.forEach(layer => {
+        const markerFeatures = layer.features.filter(
+          feature => feature.type === "marker"
+        );
+        markerFeatures.forEach(feature => {
+          feature.leafletObject = L.marker(feature.coords).bindPopup(
+            feature.nombre
+          );
+        });
+      });
+    },
+    initMap() {
+      this.map = L.map("map").setView([19.432608, -99.133209], 12);
+      this.tileLayer = L.tileLayer(
+        "https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png",
+        {
+          maxZoom: 18,
+          attribution:
+            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>'
+        }
+      );
+
+      this.tileLayer.addTo(this.map);
+    },
+    addMarker(el) {
+      let newMarker = new L.marker([el.lat, el.lng]).addTo(this.map);
     }
+    // editData() {
+    //   console.log(this.museums);
+    //   let fixedMuseums = this.museums.map(category => {
+    //     category["features"] = category["features"].map((museum, index) => {
+    //       museum["id"] = index;
+    //       museum["type"] = "marker";
+    //       museum["coords"] = [museum["lat"], museum["lng"]];
+    //       delete museum["oldID"];
+    //       delete museum["lat"];
+    //       delete museum["lng"];
+    //       return museum;
+    //     });
+    //     return category;
+    //   });
+    //   console.log(fixedMuseums);
+    // }
   }
 };
 </script>
 
 <style scoped lang="scss">
 #map {
-  height:50vh;
+  height: 50vh;
 }
 </style>
