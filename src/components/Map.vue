@@ -12,7 +12,7 @@
           <l-popup>
             <div class="container-fluid">
               <div class="row">
-                <div class="col-lg-12">
+                <div class="col-xs-6 col-lg-12">
                   <h5 class="text-center">{{marker['nombre']}}</h5>
                   <p>
                     <i class="fas fa-map-marker-alt"></i>
@@ -34,7 +34,7 @@
           <div class="row">
             <div class="col-lg-12" id="controller">
               <h5 class="text-center">Buscar por Categoría</h5>
-              <div v-for="(tipo, index) in tipos" :key="index" class="category">
+              <div v-for="(tipo, index) in tipos" :key="index" class="input-group category">
                 <input
                   @change="filterByTipo"
                   type="checkbox"
@@ -92,7 +92,6 @@ export default {
         { name: "TND", checked: false }
       ],
       selected: [],
-      fixedMuseums: [],
       museums: [],
       markersColors: [
         { name: "Historia", hex_color: "#FFAD00" },
@@ -106,14 +105,7 @@ export default {
     };
   },
   mounted: function() {
-    console.log(this.datamuseums);
-    this.fixedMuseums = this.datamuseums;
     this.museums = this.datamuseums;
-  },
-  computed: {
-    selectedCategories() {
-      let categories = this.selected.forEach();
-    }
   },
   methods: {
     filterByTipo({ target }) {
@@ -125,7 +117,6 @@ export default {
           );
           shownMuseums.push(filtered[0]);
         }
-        console.log(shownMuseums);
         return (this.museums = shownMuseums);
       } else return (this.museums = this.datamuseums);
     },
@@ -157,16 +148,29 @@ export default {
   height: 50vh;
 }
 #controller {
+  padding: 1 5px;
   background: #fff;
   opacity: 0.95;
   border: 2px solid rgba(0, 0, 0, 0.2);
   color: #333;
   .category {
+    padding: 2px;
     text-align: left;
+
     label {
       margin-left: 5px;
       line-height: 10pt;
     }
+  }
+}
+@media screen and (max-width: 575.98px) {
+  #map {
+    height: 100vh !important;
+  }
+}
+@media (min-width: 576px) and (max-width: 767.98px) {
+  #map {
+    height: 100vh !important;
   }
 }
 </style>
