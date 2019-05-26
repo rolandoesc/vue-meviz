@@ -1,130 +1,153 @@
 <template>
-  <div class="container mt-3 mt-sm-5" id="app">
-    <div class="row">
-      <div class="col-md-9">
-        <div class="map" id="map"></div>
-      </div>
-      <div class="col-md-3">
-        <div class="form-check" v-for="layer in museumsData" :key="layer.id">
-          <label class="form-check-label">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              v-model="layer.active"
-              @change="layerChanged(layer.id, layer.active)"
-            >
-            {{ layer.name }}
-          </label>
+  <div id="map">
+    <l-map :zoom="zoom" :center="center">
+      <l-tile-layer :url="url" :attribution="attribution" layerType="base"></l-tile-layer>
+      <l-layer-group v-for="category in museums" :key="category.name" layer-type="overlay">
+        <l-marker
+          :key="marker['id']"
+          v-for="marker in category.features"
+          :lat-lng="marker.coords"
+          :icon="markerColor(category.name)"
+        >
+          <l-popup>
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-lg-12">
+                  <h5 class="text-center">{{marker['nombre']}}</h5>
+                  <p>
+                    <i class="fas fa-map-marker-alt"></i>
+                    &nbsp;Ubicación: {{marker['calle_numero']}}, {{marker['colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}
+                  </p>
+                  <p>
+                    <i class="fas fa-tag"></i>
+                    &nbsp;Temática: {{marker['tematica']}}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </l-popup>
+        </l-marker>
+      </l-layer-group>
+
+      <l-control>
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12" id="controller">
+              <h5 class="text-center">Buscar por Categoría</h5>
+              <div v-for="(tipo, index) in tipos" :key="index" class="category">
+                <input
+                  @change="filterByTipo"
+                  type="checkbox"
+                  :name="tipo.name"
+                  :value="tipo.name"
+                  v-model="selected"
+                >
+                <label for="tipo">{{tipo.name}}</label>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </l-control>
+    </l-map>
   </div>
 </template>
 
 <script>
-import { LMap, LTileLayer, LMarker, L, LPopup, LControl } from "vue2-leaflet";
+import {
+  LMap,
+  LTileLayer,
+  LMarker,
+  L,
+  LPopup,
+  LControl,
+  LLayerGroup
+} from "vue2-leaflet";
 export default {
   name: "Map",
-  props: {
-    museums: {
-      type: Array
-    }
-  },
+  props: ["datamuseums"],
   // el: "#map",
   components: {
     LMap,
     LTileLayer,
     LMarker,
     LPopup,
-    LControl
+    LControl,
+    LLayerGroup
   },
   data: function() {
     return {
-      map: null,
-      tileLayer: null,
+      // map: null,
       zoom: 13,
       center: L.latLng(19.432608, -99.133209),
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      topics: ["Historia", "TND"],
+      tipos: [
+        { name: "Historia", checked: false },
+        { name: "Arqueología", checked: false },
+        { name: "Ciencia y tecnología", checked: false },
+        { name: "Arte", checked: false },
+        { name: "Especializado", checked: false },
+        { name: "Antropología", checked: false },
+        { name: "TND", checked: false }
+      ],
       selected: [],
-      museumsData: [],
-      layers: this.museums
+      fixedMuseums: [],
+      museums: [],
+      markersColors: [
+        { name: "Historia", hex_color: "#FFAD00" },
+        { name: "Arqueología", hex_color: "#4FA03B" },
+        { name: "Ciencia y tecnología", hex_color: "#4687C1" },
+        { name: "Arte", hex_color: "#C1D415" },
+        { name: "Especializado", hex_color: "#C761AD" },
+        { name: "Antropología", hex_color: "#EE3840" },
+        { name: "TND", hex_color: "#E0E0E0" }
+      ]
     };
   },
-  mounted() {
-    this.$nextTick(() => {
-      this.museumsData = this.museums;
-      this.initMap();
-      this.initLayers();
-      // this.editData();
-    });
+  mounted: function() {
+    console.log(this.datamuseums);
+    this.fixedMuseums = this.datamuseums;
+    this.museums = this.datamuseums;
+  },
+  computed: {
+    selectedCategories() {
+      let categories = this.selected.forEach();
+    }
   },
   methods: {
-    layerChanged(layerId, active) {
-      const layer = this.layers.find(layer => layer.id === layerId);
-      console.log(layer);
-      layer.features.forEach(feature => {
-        if (active) {
-          feature.leafletObject.addTo(this.map);
-        } else {
-          feature.leafletObject.removeFrom(this.map);
-        }
-      });
-    },
-    initLayers() {
-      // this.museumsData.forEach(layer => {
-      //   layer["museums"].forEach(feature => {
-      //     // L.marker([feature.lat, feature.lng]).bindPopup(feature.nombre);
-      //     this.addMarker(feature);
-      //   });
-      //   console.log(layer);
-      // });
-
-      this.layers.forEach(layer => {
-        const markerFeatures = layer.features.filter(
-          feature => feature.type === "marker"
-        );
-        markerFeatures.forEach(feature => {
-          feature.leafletObject = L.marker(feature.coords).bindPopup(
-            feature.nombre
+    filterByTipo({ target }) {
+      if (this.selected.length > 0) {
+        let shownMuseums = [];
+        for (let i = 0; i < this.selected.length; i++) {
+          let filtered = this.datamuseums.filter(
+            el => el.name === this.selected[i]
           );
-        });
-      });
-    },
-    initMap() {
-      this.map = L.map("map").setView([19.432608, -99.133209], 12);
-      this.tileLayer = L.tileLayer(
-        "https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png",
-        {
-          maxZoom: 18,
-          attribution:
-            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>'
+          shownMuseums.push(filtered[0]);
         }
-      );
-
-      this.tileLayer.addTo(this.map);
+        console.log(shownMuseums);
+        return (this.museums = shownMuseums);
+      } else return (this.museums = this.datamuseums);
     },
-    addMarker(el) {
-      let newMarker = new L.marker([el.lat, el.lng]).addTo(this.map);
+    markerColor(color) {
+      let cat_color = this.markersColors.filter(el => el.name === color);
+      const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 511.999 511.999" style="enable-background:new 0 0 511.999 511.999;" xml:space="preserve" width="24px" height="24px" class="">
+  <g>
+    <path style="fill:${
+      cat_color[0]["hex_color"]
+    }" d="M454.848,198.848c0,159.225-179.751,306.689-179.751,306.689c-10.503,8.617-27.692,8.617-38.195,0  c0,0-179.751-147.464-179.751-306.689C57.153,89.027,146.18,0,256,0S454.848,89.027,454.848,198.848z" data-original="#EE3840" class="active-path"/>
+    <path style="fill:#FFFFFF" d="M256,298.89c-55.164,0-100.041-44.879-100.041-100.041S200.838,98.806,256,98.806  s100.041,44.879,100.041,100.041S311.164,298.89,256,298.89z" data-original="#FFE1D6" class="" data-old_color="#ffffff"/>
+  </g> 
+</svg>
+`;
+      return L.divIcon({
+        className: "marker",
+        html: svg,
+        iconAnchor: [24, 24],
+        popupAnchor: [0, -35]
+      });
     }
-    // editData() {
-    //   console.log(this.museums);
-    //   let fixedMuseums = this.museums.map(category => {
-    //     category["features"] = category["features"].map((museum, index) => {
-    //       museum["id"] = index;
-    //       museum["type"] = "marker";
-    //       museum["coords"] = [museum["lat"], museum["lng"]];
-    //       delete museum["oldID"];
-    //       delete museum["lat"];
-    //       delete museum["lng"];
-    //       return museum;
-    //     });
-    //     return category;
-    //   });
-    //   console.log(fixedMuseums);
-    // }
   }
 };
 </script>
@@ -132,5 +155,18 @@ export default {
 <style scoped lang="scss">
 #map {
   height: 50vh;
+}
+#controller {
+  background: #fff;
+  opacity: 0.95;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  color: #333;
+  .category {
+    text-align: left;
+    label {
+      margin-left: 5px;
+      line-height: 10pt;
+    }
+  }
 }
 </style>

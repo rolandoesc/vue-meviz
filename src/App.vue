@@ -1,7 +1,7 @@
 <template>
   <div id="app" v-if="museums.length">
-    <Header></Header>
-    <Map :museums="museums"></Map>
+    <Header/>
+    <Map :datamuseums="museums" v-if="museums.length > 0"></Map>
     <Footer></Footer>
   </div>
 </template>
