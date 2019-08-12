@@ -1,43 +1,60 @@
 <template>
-  <div class="offset-lg-1 col-lg-10 col-md-6 col-sm-6 justify-content-center">
-    <p class="text-center">
-      En México hay un total de {{total}} museos dedicados a una gran variedad de temas. 7 en total.
-      La finalidad de este proyecto es conocer todos los museos del territorio mexicano,
-      su ubicación y categoría.
-      La base de datos utilizada fue por parte del Sistema de Información Cultural (SIC), una extensión
-      de la secretaría de cultura.
-    </p>
-  </div>
+  <v-flex pa-2 xs12 sm10 md8 lg6 offset-md2 offset-sm1>
+    <v-card>
+      <v-card-title class="pb-0">
+        <h3>¿Qué debo entender de esta visualización?</h3>
+      </v-card-title>
+      <v-card-text>
+        <ul class="text-xs-left">
+          <li>
+            En México hay un total de
+            <b>{{total}}</b>
+            museos dedicados a una gran variedad de temas. Lo agrupamos en {{datamuseums.length}} categorías.
+          </li>
+          <li>
+            La finalidad de este proyecto es conocer todos los museos del territorio mexicano,
+            su ubicación y especialización.
+          </li>
+          <li>
+            La base de datos utilizada fue por parte del
+            <a
+              href="https://sic.cultura.gob.mx/"
+              target="_blank"
+            >Sistema de Información Cultural (SIC)</a>, una extensión
+            de la secretaría de cultura.
+          </li>
+        </ul>
+      </v-card-text>
+      <p class="text-xs-left"></p>
+    </v-card>
+  </v-flex>
 </template>
 
 <script>
 export default {
-  prosp: {
+  props: {
     datamuseums: {
       type: Array,
-      required: false,
-      default: 0
+      required: false
     }
   },
   data() {
     return {
-      total: 0,
       categories: undefined
     };
   },
-  methods: {
-    totalMuseums() {
+  methods: {},
+  computed: {
+    total() {
       let total = 0;
-      for (let i = 0; i < this.categories; i++) {
-        console.log(this.categories);
-        total = total + this.categories[i]["features"].length;
+      for (let i = 0; i < this.datamuseums.length; i++) {
+        total = total + this.datamuseums[i]["features"].length;
       }
-      return (this.total = total);
+      return total;
     }
   },
   mounted() {
     this.categories = this.datamuseums;
-    this.totalMuseums();
   }
 };
 </script>

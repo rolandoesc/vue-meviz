@@ -1,70 +1,99 @@
 <template>
-  <div id="map">
-    <l-map :zoom="zoom" :center="center">
-      <l-tile-layer :url="url" :attribution="attribution" layerType="base"></l-tile-layer>
-      <l-layer-group v-for="category in museums" :key="category.name" layer-type="overlay">
-        <l-marker
-          :key="marker['id']"
-          v-for="marker in category.features"
-          :lat-lng="marker.coords"
-          :icon="markerColor(category.name)"
-        >
-          <l-popup>
-            <div class="container-fluid">
-              <div class="row">
-                <div class="col-xs-6 col-lg-12">
-                  <h5 class="text-center">{{marker['nombre']}}</h5>
+  <div>
+    <!-- <v-flex xs12 sm10 md8 offset-md2 offset-sm1> -->
+    <MapText :datamuseums="datamuseums" />
+    <!-- </v-flex> -->
+    <v-flex xs12 md8 offset-md2 lg3>
+      <v-select
+        :items="states"
+        item-text="name"
+        item-value="name"
+        v-model="selected_states"
+        label="Filtra por estado"
+        solo
+        multiple
+        chips
+        @change="filterByState"
+      ></v-select>
+    </v-flex>
+    <v-flex lg10 offset-lg1 xs12>
+      <v-card id="map" class="elevation-0">
+        <l-map :zoom="zoom" :center="center">
+          <l-tile-layer :url="url" :attribution="attribution" layerType="base"></l-tile-layer>
+
+          <l-layer-group v-for="category in museums" :key="category.name" layer-type="overlay">
+            <l-marker
+              :key="marker['id']"
+              v-for="marker in category.features"
+              :lat-lng="marker.coords"
+              :icon="markerColor(category.name)"
+            >
+              <l-tooltip>{{marker['nombre']}}</l-tooltip>
+              <l-popup>
+                <v-card class="elevation-0">
+                  <v-card-title class="pb-0">
+                    <h3 class="text-xs-center">{{marker['nombre']}}</h3>
+                  </v-card-title>
                   <p>
-                    <i class="fas fa-map-marker-alt"></i>
+                    <i class="fas fa-map-marker-alt" :style="{color: getColor(marker['tematica'])}"></i>
+                    <!-- {{}} -->
                     &nbsp;Ubicación: {{marker['calle_numero']}}, {{marker['colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}
                   </p>
                   <p>
-                    <i class="fas fa-tag"></i>
+                    <i class="fas fa-tag" :style="{color: getColor(marker['tematica'])}"></i>
                     &nbsp;Temática: {{marker['tematica']}}
                   </p>
-                </div>
-              </div>
-            </div>
-          </l-popup>
-        </l-marker>
-      </l-layer-group>
+                </v-card>
+              </l-popup>
+            </l-marker>
+          </l-layer-group>
 
-      <l-control>
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-lg-12" id="controller">
-              <h5 class="text-center">Buscar por Categoría</h5>
-              <div v-for="(tipo, index) in tipos" :key="index" class="input-group category">
-                <input
-                  @change="filterByTipo"
-                  type="checkbox"
-                  :name="tipo.name"
-                  :value="tipo.name"
+          <l-control>
+            <v-card id="controller">
+              <v-flex sm12>
+                <v-card-title>
+                  <h3 class="text-xs-center">Buscar por categoría</h3>
+                </v-card-title>
+                <v-checkbox
+                  v-for="(category, index) in museums_categories"
+                  @change="filterByCategory"
+                  class="ma-0 pa-0 small-category-checkbox"
+                  :color="museums_categories[index]['hex_color']"
                   v-model="selected"
+                  :key="index"
+                  :value="category.name"
+                  :name="category.name"
                 >
-                <label for="tipo">{{tipo.name}}</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </l-control>
-    </l-map>
+                  <template slot="label">
+                    <span>{{category.name === 'TND' ? 'Temática no definida' : category.name}}</span>
+                  </template>
+                  <!-- {{markerColor(category.name)}}-->
+                </v-checkbox>
+              </v-flex>
+            </v-card>
+          </l-control>
+        </l-map>
+      </v-card>
+    </v-flex>
   </div>
 </template>
 
 <script>
+import MapText from "@/components/MapText.vue";
 import {
   LMap,
   LTileLayer,
   LMarker,
   L,
   LPopup,
+  LTooltip,
   LControl,
   LLayerGroup
 } from "vue2-leaflet";
+import { filter } from "minimatch";
 export default {
   name: "Map",
-  props: ["datamuseums"],
+  props: ["datamuseums", "states"],
   // el: "#map",
   components: {
     LMap,
@@ -72,7 +101,9 @@ export default {
     LMarker,
     LPopup,
     LControl,
-    LLayerGroup
+    LTooltip,
+    LLayerGroup,
+    MapText
   },
   data: function() {
     return {
@@ -82,46 +113,68 @@ export default {
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      tipos: [
-        { name: "Historia", checked: false },
-        { name: "Arqueología", checked: false },
-        { name: "Ciencia y tecnología", checked: false },
-        { name: "Arte", checked: false },
-        { name: "Especializado", checked: false },
-        { name: "Antropología", checked: false },
-        { name: "TND", checked: false }
+      museums_categories: [
+        { name: "Historia", checked: false, hex_color: "#FFAD00" },
+        { name: "Arqueología", checked: false, hex_color: "#4FA03B" },
+        { name: "Ciencia y tecnología", checked: false, hex_color: "#4687C1"  },
+        { name: "Arte", checked: false, hex_color: "#C1D415"  },
+        { name: "Especializado", checked: false, hex_color: "#C761AD" },
+        { name: "Antropología", checked: false, hex_color: "#EE3840" },
+        { name: "TND", checked: false, hex_color: "#E0E0E0" }
       ],
       selected: [],
       museums: [],
-      markersColors: [
-        { name: "Historia", hex_color: "#FFAD00" },
-        { name: "Arqueología", hex_color: "#4FA03B" },
-        { name: "Ciencia y tecnología", hex_color: "#4687C1" },
-        { name: "Arte", hex_color: "#C1D415" },
-        { name: "Especializado", hex_color: "#C761AD" },
-        { name: "Antropología", hex_color: "#EE3840" },
-        { name: "TND", hex_color: "#E0E0E0" }
-      ]
+      selected_states: []
     };
   },
   mounted: function() {
     this.museums = this.datamuseums;
+    console.log(this.datamuseums);
+    // this.museums_categories.map(el => {
+    //   el.checked = true;
+    //   return el;
+    // });
   },
   methods: {
-    filterByTipo({ target }) {
-      if (this.selected.length > 0) {
-        let shownMuseums = [];
-        for (let i = 0; i < this.selected.length; i++) {
-          let filtered = this.datamuseums.filter(
-            el => el.name === this.selected[i]
-          );
-          shownMuseums.push(filtered[0]);
-        }
-        return (this.museums = shownMuseums);
+    filterByCategory($event) {
+      console.log($event)
+      if ($event.length > 0) {
+        let shown_museums = [];
+        let filtered = [];
+        $event.forEach(category => {
+          filtered = this.datamuseums.filter(el => el['name'] === category);
+          shown_museums.push(filtered[0])
+        })
+        return (this.museums = shown_museums);
       } else return (this.museums = this.datamuseums);
     },
+    filterByState() {
+      const selected_states = [...this.selected_states]
+      console.log('esto es museums', this.museums)
+      if (this.selected_states.length > 0) {
+        let shown_museums = [];
+        let filtered_states = [];
+        let museums = [...this.datamuseums]
+        selected_states.forEach(state => {
+          let selected_museums = museums.reduce((acum, curr) => {
+            // if (curr.features.filter())
+            let current_filtered = curr['features']
+              .filter(category => { 
+                return category['nom_ent'] === state})
+              // console.table(current_filtered)
+              curr['features'] = current_filtered;
+            return acum = curr
+          }, [])
+          if (selected_museums.length > 0)
+            Array.prototype.push.apply(filtered_states, selected_museums)
+        })
+        console.log(filtered_states);
+        return (this.museums = filtered_states);
+      }
+      else this.museums = this.datamuseums
+    },
     markerColor(color) {
-      let cat_color = this.markersColors.filter(el => el.name === color);
+      let cat_color = this.museums_categories.filter(el => el.name === color);
       const svg = `<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 511.999 511.999" style="enable-background:new 0 0 511.999 511.999;" xml:space="preserve" width="24px" height="24px" class="">
   <g>
@@ -138,6 +191,19 @@ export default {
         iconAnchor: [24, 24],
         popupAnchor: [0, -35]
       });
+    },
+    getColor(category) {
+      if (!!category) {
+        let found_category = this.museums_categories.filter(
+          el => el.name === category
+        );
+        return found_category[0]["hex_color"];
+      } else return "E0E0E0";
+    }
+  },
+  computed: {
+    items() {
+      return this.datamuseums.map(museums => museums['features'])
     }
   }
 };
@@ -146,6 +212,7 @@ export default {
 <style scoped lang="scss">
 #map {
   height: 50vh;
+  z-index: 0;
 }
 #controller {
   padding: 1 5px;
@@ -153,15 +220,15 @@ export default {
   opacity: 0.95;
   border: 2px solid rgba(0, 0, 0, 0.2);
   color: #333;
-  .category {
-    padding: 2px;
-    text-align: left;
+  // .category {
+  //   padding: 2px;
+  //   text-align: left;
 
-    label {
-      margin-left: 5px;
-      line-height: 10pt;
-    }
-  }
+  //   label {
+  //     margin-left: 5px;
+  //     line-height: 10pt;
+  //   }
+  // }
 }
 @media screen and (max-width: 575.98px) {
   #map {
@@ -172,5 +239,8 @@ export default {
   #map {
     height: 100vh !important;
   }
+}
+.small-category-checkbox {
+  transform: scale(0.75);
 }
 </style>
