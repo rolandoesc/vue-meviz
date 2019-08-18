@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- <v-flex xs12 sm10 md8 offset-md2 offset-sm1> -->
-    <MapText :datamuseums="datamuseums" />
+    <!-- <MapText :datamuseums="datamuseums" /> -->
     <!-- </v-flex> -->
     <v-flex xs12 md8 offset-md2 lg3>
-      <v-select
+      <!-- <v-select
         :items="states"
         item-text="name"
         item-value="name"
@@ -14,11 +14,11 @@
         multiple
         chips
         @change="filterByState"
-      ></v-select>
+      ></v-select>-->
     </v-flex>
     <v-flex lg10 offset-lg1 xs12>
       <v-card id="map" class="elevation-0">
-        <l-map :zoom="zoom" :center="center">
+        <!-- <l-map :zoom="zoom" :center="center">
           <l-tile-layer :url="url" :attribution="attribution" layerType="base"></l-tile-layer>
 
           <l-layer-group v-for="category in museums" :key="category.name" layer-type="overlay">
@@ -36,7 +36,6 @@
                   </v-card-title>
                   <p>
                     <i class="fas fa-map-marker-alt" :style="{color: getColor(marker['tematica'])}"></i>
-                    <!-- {{}} -->
                     &nbsp;Ubicación: {{marker['calle_numero']}}, {{marker['colonia']}}, {{marker['nom_loc']}}, {{marker['nom_ent']}}
                   </p>
                   <p>
@@ -67,12 +66,33 @@
                   <template slot="label">
                     <span>{{category.name === 'TND' ? 'Temática no definida' : category.name}}</span>
                   </template>
-                  <!-- {{markerColor(category.name)}}-->
                 </v-checkbox>
               </v-flex>
             </v-card>
           </l-control>
-        </l-map>
+        </l-map>-->
+        <v-card id="controller">
+          <v-flex sm12>
+            <v-card-title>
+              <h3 class="text-xs-center">Buscar por categoría</h3>
+            </v-card-title>
+            <v-checkbox
+              v-for="(category, index) in museums_categories"
+              class="ma-0 pa-0 small-category-checkbox"
+              :color="museums_categories[index]['hex_color']"
+              v-model="selected"
+              :key="index"
+              :value="category.name"
+              :name="category.name"
+              @change="filterByCategory"
+            >
+              <template slot="label">
+                <span>{{category.name === 'TND' ? 'Temática no definida' : category.name}}</span>
+              </template>
+            </v-checkbox>
+          </v-flex>
+        </v-card>
+        <div id="map-container"></div>
       </v-card>
     </v-flex>
   </div>
@@ -80,34 +100,39 @@
 
 <script>
 import MapText from "@/components/MapText.vue";
-import {
-  LMap,
-  LTileLayer,
-  LMarker,
-  L,
-  LPopup,
-  LTooltip,
-  LControl,
-  LLayerGroup
-} from "vue2-leaflet";
-import { filter } from "minimatch";
+// import {
+//   LMap,
+//   LTileLayer,
+//   LMarker,
+//   L,
+//   LPopup,
+//   LTooltip,
+//   LControl,
+//   LLayerGroup
+// } from "vue2-leaflet";
+
+const setClass = category => {
+  let categories = {
+    Historia: "#FFAD00",
+    Arqueología: "#4FA03B",
+    "Ciencia y tecnología": "#4687C1",
+    Arte: "#C1D415",
+    Especializado: "#C761AD",
+    Antropología: "#EE3840",
+    TND: "#E0E0E0"
+  };
+  return categories[category];
+};
+
 export default {
   name: "Map",
   props: ["datamuseums", "states"],
-  // el: "#map",
   components: {
-    LMap,
-    LTileLayer,
-    LMarker,
-    LPopup,
-    LControl,
-    LTooltip,
-    LLayerGroup,
     MapText
   },
   data: function() {
     return {
-      // map: null,
+      map: null,
       zoom: 13,
       center: L.latLng(19.432608, -99.133209),
       url: "http://{s}.tile.osm.org/{z}/{x}/{y}.png",
@@ -116,63 +141,66 @@ export default {
       museums_categories: [
         { name: "Historia", checked: false, hex_color: "#FFAD00" },
         { name: "Arqueología", checked: false, hex_color: "#4FA03B" },
-        { name: "Ciencia y tecnología", checked: false, hex_color: "#4687C1"  },
-        { name: "Arte", checked: false, hex_color: "#C1D415"  },
+        { name: "Ciencia y tecnología", checked: false, hex_color: "#4687C1" },
+        { name: "Arte", checked: false, hex_color: "#C1D415" },
         { name: "Especializado", checked: false, hex_color: "#C761AD" },
         { name: "Antropología", checked: false, hex_color: "#EE3840" },
         { name: "TND", checked: false, hex_color: "#E0E0E0" }
       ],
       selected: [],
       museums: [],
-      selected_states: []
+      selected_states: [],
+      markers: []
     };
-  },
-  mounted: function() {
-    this.museums = this.datamuseums;
-    console.log(this.datamuseums);
-    // this.museums_categories.map(el => {
-    //   el.checked = true;
-    //   return el;
-    // });
   },
   methods: {
     filterByCategory($event) {
-      console.log($event)
+      console.log($event);
+      // if ($event.length > 0) {
+      //   let shown_museums = [];
+      //   let filtered = [];
+      //   $event.forEach(category => {
+      //     filtered = this.datamuseums.filter(el => el["name"] === category);
+      //     shown_museums.push(filtered[0]);
+      //   });
+      //   return (this.museums = shown_museums);
+      // } else return (this.museums = this.datamuseums);
       if ($event.length > 0) {
         let shown_museums = [];
         let filtered = [];
         $event.forEach(category => {
-          filtered = this.datamuseums.filter(el => el['name'] === category);
-          shown_museums.push(filtered[0])
-        })
-        return (this.museums = shown_museums);
-      } else return (this.museums = this.datamuseums);
+          filtered = this.museums[0]['features'].filter(el => el["museo_tematica_n1"] === category);
+          shown_museums = shown_museums.concat(filtered);
+        });
+        console.log('esto es shown', shown_museums)
+        return (this.renderMarkers(shown_museums));
+      } else return (this.markers(this.museums));
+      
     },
-    filterByState() {
-      const selected_states = [...this.selected_states]
-      console.log('esto es museums', this.museums)
-      if (this.selected_states.length > 0) {
-        let shown_museums = [];
-        let filtered_states = [];
-        let museums = [...this.datamuseums]
-        selected_states.forEach(state => {
-          let selected_museums = museums.reduce((acum, curr) => {
-            // if (curr.features.filter())
-            let current_filtered = curr['features']
-              .filter(category => { 
-                return category['nom_ent'] === state})
-              // console.table(current_filtered)
-              curr['features'] = current_filtered;
-            return acum = curr
-          }, [])
-          if (selected_museums.length > 0)
-            Array.prototype.push.apply(filtered_states, selected_museums)
-        })
-        console.log(filtered_states);
-        return (this.museums = filtered_states);
-      }
-      else this.museums = this.datamuseums
-    },
+    // filterByState() {
+    //   const selected_states = [...this.selected_states];
+    //   console.log("esto es museums", this.museums);
+    //   if (this.selected_states.length > 0) {
+    //     let shown_museums = [];
+    //     let filtered_states = [];
+    //     let museums = [...this.datamuseums];
+    //     selected_states.forEach(state => {
+    //       let selected_museums = museums.reduce((acum, curr) => {
+    //         // if (curr.features.filter())
+    //         let current_filtered = curr["features"].filter(category => {
+    //           return category["nom_ent"] === state;
+    //         });
+    //         // console.table(current_filtered)
+    //         curr["features"] = current_filtered;
+    //         return (acum = curr);
+    //       }, []);
+    //       if (selected_museums.length > 0)
+    //         Array.prototype.push.apply(filtered_states, selected_museums);
+    //     });
+    //     console.log(filtered_states);
+    //     return (this.museums = filtered_states);
+    //   } else this.museums = this.datamuseums;
+    // },
     markerColor(color) {
       let cat_color = this.museums_categories.filter(el => el.name === color);
       const svg = `<?xml version="1.0"?>
@@ -199,12 +227,137 @@ export default {
         );
         return found_category[0]["hex_color"];
       } else return "E0E0E0";
-    }
+    },
+    initMap() {
+      this.map = L.map("map-container").setView([19.432608, -99.133209], 13);
+
+      L.tileLayer(
+        "https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1Ijoicm9sYW5kb2VzYyIsImEiOiJjanB2azRleXAwMWdvNDJyMTh1YnltZ3djIn0.zUoMAeWTZo96BiECCOtsuQ",
+        {
+          attribution:
+            'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+          maxZoom: 18,
+          id: "mapbox.streets",
+          accessToken:
+            "pk.eyJ1Ijoicm9sYW5kb2VzYyIsImEiOiJjanB2azRleXAwMWdvNDJyMTh1YnltZ3djIn0.zUoMAeWTZo96BiECCOtsuQ"
+        }
+      ).addTo(this.map);
+      // this.renderMarkers(this.museums[0]['features']);
+      this.createPane();
+    },
+    renderMarkers(museums_array) {
+      console.log('esto recibo', museums_array)
+      let markers = [...museums_array];
+      // console.log('museums', this.museums)
+      this.markers = markers.map(marker => {
+        let coords = [marker["gmaps_latitud"], marker["gmaps_longitud"]];
+        let current_marker = L.marker(coords).addTo(this.map);
+        this.popupDetails(current_marker, marker);
+        return current_marker;
+      });
+      return this.markers;
+    },
+    popupDetails(
+      target_marker,
+      {
+        museo_nombre,
+        museo_tematica_n1,
+        museo_colonia,
+        museo_calle_numero,
+        nom_loc,
+        nom_ent
+      }
+    ) {
+      let template = `
+        <v-card class="elevation-0">
+          <v-card-title class="pb-0">
+            <h3 class="text-xs-center">${museo_nombre}</h3>
+          </v-card-title>
+          <p >
+            <i class="fas fa-map-marker-alt" style="color: ${setClass(
+              museo_tematica_n1
+            )};">
+            </i>
+              &nbsp;Ubicación: ${museo_calle_numero}, ${museo_colonia}, ${nom_loc}, ${nom_ent}
+          </p>
+          <p>
+            <i class="fas fa-tag" style="color: ${setClass(
+              museo_tematica_n1
+            )};" ></i>
+              &nbsp;Temática: ${museo_tematica_n1}
+          </p>
+        </v-card>
+      `;
+      // :style="{color: ${this.getColor(museo_tematica_n1)}}"
+      return target_marker.bindPopup(template);
+    },
+    createPane() {
+      let pane_template = `
+      <v-card id="controller">
+              <v-flex sm12>
+                <v-card-title>
+                  <h3 class="text-xs-center">Buscar por categoría</h3>
+                </v-card-title>
+                <v-checkbox
+                  v-for="(category, index) in museums_categories"
+                  @change="filterByCategory"
+                  class="ma-0 pa-0 small-category-checkbox"
+                  :color="museums_categories[index]['hex_color']"
+                  v-model="selected"
+                  :key="index"
+                  :value="category.name"
+                  :name="category.name"
+                >
+                  <template slot="label">
+                    <span>{{category.name === 'TND' ? 'Temática no definida' : category.name}}</span>
+                  </template>
+                </v-checkbox>
+              </v-flex>
+            </v-card>
+      `;
+
+      var customControl = L.Control.extend({
+        options: {
+          position: "topright"
+        },
+
+        onAdd: function(map) {
+          var container = L.DomUtil.create(
+            "div",
+            "leaflet-bar leaflet-control leaflet-control-custom"
+          );
+
+          container.style.backgroundColor = "white";
+          // container.style.backgroundImage =
+          //   "url(https://t1.gstatic.com/images?q=tbn:ANd9GcR6FCUMW5bPn8C4PbKak2BJQQsmC-K9-mbYBeFZm1ZM2w2GRy40Ew)";
+          // container.style.backgroundSize = "30px 30px";
+          // container.style.width = "30px";
+          // container.style.height = "30px";
+
+          container.onclick = function() {
+            console.log("buttonClicked");
+          };
+          console.log(container);
+          container.value = pane_template;
+          let controller = document.getElementById('controller')
+          container.appendChild(controller)
+          return container;
+        }
+      });
+      return this.map.addControl(new customControl());
+    },
   },
   computed: {
-    items() {
-      return this.datamuseums.map(museums => museums['features'])
-    }
+    // items() {
+    //   return this.datamuseums.map(museums => museums["features"]);
+    // }
+  },
+  mounted() {
+    this.museums = this.datamuseums;
+    console.log(this.datamuseums);
+    this.initMap();
+    console.log(this.map);
+    console.log(L);
   }
 };
 </script>
@@ -213,6 +366,9 @@ export default {
 #map {
   height: 50vh;
   z-index: 0;
+  #map-container {
+    height: 100%;
+  }
 }
 #controller {
   padding: 1 5px;
@@ -238,9 +394,51 @@ export default {
 @media (min-width: 576px) and (max-width: 767.98px) {
   #map {
     height: 100vh !important;
+    #map-container {
+      height: 200px;
+    }
   }
 }
 .small-category-checkbox {
   transform: scale(0.75);
+}
+
+/*
+
+
+*/
+.history {
+  color: #ffad00 !important;
+  background-color: #ffad00 !important;
+}
+
+.archeology {
+  color: #4fa03b !important;
+  background-color: #4fa03b !important;
+}
+
+.science {
+  color: #4687c1 !important;
+  background-color: #4687c1 !important;
+}
+
+.arts {
+  color: #c1d415 !important;
+  background-color: #c1d415 !important;
+}
+
+.specialized {
+  color: #c761ad !important;
+  background-color: #c761ad !important;
+}
+
+.anthropology {
+  color: #ee3840 !important;
+  background-color: #ee3840 !important;
+}
+
+.not-defined {
+  color: #e0e0e0 !important;
+  background-color: #e0e0e0 !important;
 }
 </style>
