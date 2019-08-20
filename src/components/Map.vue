@@ -4,17 +4,17 @@
     <!-- <MapText :datamuseums="datamuseums" /> -->
     <!-- </v-flex> -->
     <v-flex xs12 md8 offset-md2 lg3>
-      <!-- <v-select
+      <v-select
         :items="states"
-        item-text="name"
-        item-value="name"
+        item-text="state_name"
+        item-value="state_id"
         v-model="selected_states"
         label="Filtra por estado"
         solo
         multiple
         chips
-        @change="filterByState"
-      ></v-select>-->
+      ></v-select>
+        <!-- @change="filterByState" -->
     </v-flex>
     <v-flex lg10 offset-lg1 xs12>
       <v-card id="map" class="elevation-0">
@@ -71,7 +71,7 @@
             </v-card>
           </l-control>
         </l-map>-->
-        <v-card id="controller">
+        <v-card id="controller" v-if="false">
           <v-flex sm12>
             <v-card-title>
               <h3 class="text-xs-center">Buscar por categoría</h3>
@@ -99,6 +99,8 @@
 </template>
 
 <script>
+import mexican_states from '@/common/mexican-states.ts'
+
 import MapText from "@/components/MapText.vue";
 // import {
 //   LMap,
@@ -111,22 +113,29 @@ import MapText from "@/components/MapText.vue";
 //   LLayerGroup
 // } from "vue2-leaflet";
 
-const setClass = category => {
+const setProperty = (category, property) => {
+  category = !!category ? category : 'TND'
   let categories = {
-    Historia: "#FFAD00",
-    Arqueología: "#4FA03B",
-    "Ciencia y tecnología": "#4687C1",
-    Arte: "#C1D415",
-    Especializado: "#C761AD",
-    Antropología: "#EE3840",
-    TND: "#E0E0E0"
-  };
-  return categories[category];
+    "Historia": {'class': 'history', 'color': "#FFAD00"},
+    "Arqueología": {'class': 'archeology', 'color': "#4FA03B"},
+    "Ciencia y tecnología": {'class':'science', 'color': "#4687C1"},
+    "Arte": {'class': "arts", 'color': "#C1D415"},
+    "Especializado": {'class': "specialized", 'color': "#C761AD"},
+    "Antropología": {'class': 'anthropology', 'color': "#EE3840"},
+    "TND": {'class': 'not-defined', 'color': "#E0E0E0"}
+  }
+  return categories[category][property];
 };
+
 
 export default {
   name: "Map",
-  props: ["datamuseums", "states"],
+  props: {
+    "datamuseums": {
+      type: Array,
+      required: true
+    }
+  },
   components: {
     MapText
   },
@@ -149,6 +158,7 @@ export default {
       ],
       selected: [],
       museums: [],
+      states: mexican_states,
       selected_states: [],
       markers: []
     };
@@ -165,6 +175,7 @@ export default {
       //   });
       //   return (this.museums = shown_museums);
       // } else return (this.museums = this.datamuseums);
+      this.markers = undefined;
       if ($event.length > 0) {
         let shown_museums = [];
         let filtered = [];
@@ -172,7 +183,6 @@ export default {
           filtered = this.museums[0]['features'].filter(el => el["museo_tematica_n1"] === category);
           shown_museums = shown_museums.concat(filtered);
         });
-        console.log('esto es shown', shown_museums)
         return (this.renderMarkers(shown_museums));
       } else return (this.markers(this.museums));
       
@@ -242,16 +252,16 @@ export default {
             "pk.eyJ1Ijoicm9sYW5kb2VzYyIsImEiOiJjanB2azRleXAwMWdvNDJyMTh1YnltZ3djIn0.zUoMAeWTZo96BiECCOtsuQ"
         }
       ).addTo(this.map);
-      // this.renderMarkers(this.museums[0]['features']);
+      this.renderMarkers(this.museums[0]['features']);
       this.createPane();
     },
     renderMarkers(museums_array) {
-      console.log('esto recibo', museums_array)
       let markers = [...museums_array];
       // console.log('museums', this.museums)
       this.markers = markers.map(marker => {
         let coords = [marker["gmaps_latitud"], marker["gmaps_longitud"]];
         let current_marker = L.marker(coords).addTo(this.map);
+        // L.DomUtil.addClass(current_marker, setProperty(marker['museo_tematica_n1'], 'class'));
         this.popupDetails(current_marker, marker);
         return current_marker;
       });
@@ -274,15 +284,15 @@ export default {
             <h3 class="text-xs-center">${museo_nombre}</h3>
           </v-card-title>
           <p >
-            <i class="fas fa-map-marker-alt" style="color: ${setClass(
-              museo_tematica_n1
+            <i class="fas fa-map-marker-alt" style="color: ${setProperty(
+              museo_tematica_n1, 'color'
             )};">
             </i>
               &nbsp;Ubicación: ${museo_calle_numero}, ${museo_colonia}, ${nom_loc}, ${nom_ent}
           </p>
           <p>
-            <i class="fas fa-tag" style="color: ${setClass(
-              museo_tematica_n1
+            <i class="fas fa-tag" style="color: ${setProperty(
+              museo_tematica_n1, 'color'
             )};" ></i>
               &nbsp;Temática: ${museo_tematica_n1}
           </p>
@@ -328,16 +338,6 @@ export default {
           );
 
           container.style.backgroundColor = "white";
-          // container.style.backgroundImage =
-          //   "url(https://t1.gstatic.com/images?q=tbn:ANd9GcR6FCUMW5bPn8C4PbKak2BJQQsmC-K9-mbYBeFZm1ZM2w2GRy40Ew)";
-          // container.style.backgroundSize = "30px 30px";
-          // container.style.width = "30px";
-          // container.style.height = "30px";
-
-          container.onclick = function() {
-            console.log("buttonClicked");
-          };
-          console.log(container);
           container.value = pane_template;
           let controller = document.getElementById('controller')
           container.appendChild(controller)
@@ -347,17 +347,40 @@ export default {
       return this.map.addControl(new customControl());
     },
   },
-  computed: {
-    // items() {
-    //   return this.datamuseums.map(museums => museums["features"]);
-    // }
-  },
   mounted() {
     this.museums = this.datamuseums;
-    console.log(this.datamuseums);
-    this.initMap();
-    console.log(this.map);
-    console.log(L);
+    console.log(mexican_states)
+    // let states = this.datamuseums.map((feature, index) => {
+    //   let format = {
+    //     state_name: feature['name'],
+    //     state_id: index
+    //   }
+    //   return format
+    // })
+    // console.log(states)
+    // let segmented_museums = this.museums[0]['features'].reduce((total_museums, current_museum) => {
+    //   if (!total_museums[current_museum['nom_ent']])
+    //     total_museums[current_museum['nom_ent']] = []
+    //   let museum = current_museum;
+    //   if (!museum['museo_tematica_n1'])
+    //     museum['museo_tematica_n1'] = 'TND'
+
+    //   total_museums[current_museum['nom_ent']].push(museum)
+    //   return total_museums
+    // }, {})
+    // let segmented_states_json = Object.keys(segmented_museums).map((key, index) => {
+    //   let new_json = {
+    //     id: index,
+    //     active: undefined,
+    //     name: key,
+    //     features: segmented_museums[key]
+    //   }
+    //   return new_json
+    // })
+    // console.log(segmented_states_json)
+    // this.initMap();
+    // console.log(this.map);
+    // console.log(L);
   }
 };
 </script>

@@ -2,7 +2,7 @@
   <v-app id="app">
     <v-content>
       <Header />
-      <Map :datamuseums="museums" v-if="museums.length > 0" :states="mexican_states"></Map>
+      <Map :datamuseums="museums" v-if="museums.length > 0"></Map>
       <Footer></Footer>
     </v-content>
   </v-app>
@@ -14,7 +14,6 @@ import Header from "./components/Header.vue";
 import Footer from "./components/Footer.vue";
 import Map from "./components/Map.vue";
 import { initMuseums } from "@/common/firebase-initializer.js";
-import mexican_states from '@/common/mexican-states.js'
 
 export default {
   name: "app",
@@ -26,11 +25,6 @@ export default {
   firebase: {
     museums: initMuseums()
   },
-  data() {
-    return {
-      
-    };
-  }
 };
 </script>
 
