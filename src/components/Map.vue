@@ -14,7 +14,7 @@
         multiple
         chips
       ></v-select>
-        <!-- @change="filterByState" -->
+      <!-- @change="filterByState" -->
     </v-flex>
     <v-flex lg10 offset-lg1 xs12>
       <v-card id="map" class="elevation-0">
@@ -99,7 +99,7 @@
 </template>
 
 <script>
-import mexican_states from '@/common/mexican-states.ts'
+import mexican_states from "@/common/mexican-states.ts";
 
 import MapText from "@/components/MapText.vue";
 // import {
@@ -114,24 +114,23 @@ import MapText from "@/components/MapText.vue";
 // } from "vue2-leaflet";
 
 const setProperty = (category, property) => {
-  category = !!category ? category : 'TND'
+  category = !!category ? category : "TND";
   let categories = {
-    "Historia": {'class': 'history', 'color': "#FFAD00"},
-    "Arqueología": {'class': 'archeology', 'color': "#4FA03B"},
-    "Ciencia y tecnología": {'class':'science', 'color': "#4687C1"},
-    "Arte": {'class': "arts", 'color': "#C1D415"},
-    "Especializado": {'class': "specialized", 'color': "#C761AD"},
-    "Antropología": {'class': 'anthropology', 'color': "#EE3840"},
-    "TND": {'class': 'not-defined', 'color': "#E0E0E0"}
-  }
+    Historia: { class: "history", color: "#FFAD00" },
+    Arqueología: { class: "archeology", color: "#4FA03B" },
+    "Ciencia y tecnología": { class: "science", color: "#4687C1" },
+    Arte: { class: "arts", color: "#C1D415" },
+    Especializado: { class: "specialized", color: "#C761AD" },
+    Antropología: { class: "anthropology", color: "#EE3840" },
+    TND: { class: "not-defined", color: "#E0E0E0" }
+  };
   return categories[category][property];
 };
-
 
 export default {
   name: "Map",
   props: {
-    "datamuseums": {
+    datamuseums: {
       type: Array,
       required: true
     }
@@ -160,7 +159,8 @@ export default {
       museums: [],
       states: mexican_states,
       selected_states: [],
-      markers: []
+      markers: [],
+      control_layers: undefined
     };
   },
   methods: {
@@ -180,12 +180,13 @@ export default {
         let shown_museums = [];
         let filtered = [];
         $event.forEach(category => {
-          filtered = this.museums[0]['features'].filter(el => el["museo_tematica_n1"] === category);
+          filtered = this.museums[0]["features"].filter(
+            el => el["museo_tematica_n1"] === category
+          );
           shown_museums = shown_museums.concat(filtered);
         });
-        return (this.renderMarkers(shown_museums));
-      } else return (this.markers(this.museums));
-      
+        return this.renderMarkers(shown_museums);
+      } else return this.markers(this.museums);
     },
     // filterByState() {
     //   const selected_states = [...this.selected_states];
@@ -223,12 +224,17 @@ export default {
   </g> 
 </svg>
 `;
-      return L.divIcon({
-        className: "marker",
-        html: svg,
-        iconAnchor: [24, 24],
-        popupAnchor: [0, -35]
-      });
+      // return L.divIcon({
+      //   className: "marker",
+      //   html: svg,
+      //   iconAnchor: [24, 24],
+      //   // popupAnchor: [0, -35]
+      // });
+      let icon_url = 'data:image/svg+xml;base64,' + btoa(svg);
+      return L.icon({
+          iconUrl: icon_url,
+          iconSize: [24,24]
+        })
     },
     getColor(category) {
       if (!!category) {
@@ -252,15 +258,29 @@ export default {
             "pk.eyJ1Ijoicm9sYW5kb2VzYyIsImEiOiJjanB2azRleXAwMWdvNDJyMTh1YnltZ3djIn0.zUoMAeWTZo96BiECCOtsuQ"
         }
       ).addTo(this.map);
-      this.renderMarkers(this.museums[0]['features']);
-      this.createPane();
+
+      this.control_layers = L.control
+        .layers(null, null, {
+          position: "bottomright",
+          collapsed: false
+        })
+        .addTo(this.map);
+      this.museums.forEach(state => {
+        this.renderMarkers(state["features"], state['name']);
+      });
+      // this.createPane();
     },
-    renderMarkers(museums_array) {
+    renderMarkers(museums_array, name=false) {
       let markers = [...museums_array];
       // console.log('museums', this.museums)
+      let layer_group = new L.LayerGroup().addTo(this.map)
+      if (name === 'Ciudad de México') layer_group.addTo(this.map)
+      console.log(name)
+      this.control_layers.addOverlay(layer_group, name)
       this.markers = markers.map(marker => {
         let coords = [marker["gmaps_latitud"], marker["gmaps_longitud"]];
-        let current_marker = L.marker(coords).addTo(this.map);
+        let marker_icon = this.markerColor(marker['museo_tematica_n1'])
+        let current_marker = L.marker(coords, {icon: marker_icon}).addTo(/*this.map*/layer_group);
         // L.DomUtil.addClass(current_marker, setProperty(marker['museo_tematica_n1'], 'class'));
         this.popupDetails(current_marker, marker);
         return current_marker;
@@ -285,14 +305,16 @@ export default {
           </v-card-title>
           <p >
             <i class="fas fa-map-marker-alt" style="color: ${setProperty(
-              museo_tematica_n1, 'color'
+              museo_tematica_n1,
+              "color"
             )};">
             </i>
               &nbsp;Ubicación: ${museo_calle_numero}, ${museo_colonia}, ${nom_loc}, ${nom_ent}
           </p>
           <p>
             <i class="fas fa-tag" style="color: ${setProperty(
-              museo_tematica_n1, 'color'
+              museo_tematica_n1,
+              "color"
             )};" ></i>
               &nbsp;Temática: ${museo_tematica_n1}
           </p>
@@ -339,17 +361,17 @@ export default {
 
           container.style.backgroundColor = "white";
           container.value = pane_template;
-          let controller = document.getElementById('controller')
-          container.appendChild(controller)
+          let controller = document.getElementById("controller");
+          container.appendChild(controller);
           return container;
         }
       });
       return this.map.addControl(new customControl());
-    },
+    }
   },
   mounted() {
     this.museums = this.datamuseums;
-    console.log(mexican_states)
+    console.log(mexican_states);
     // let states = this.datamuseums.map((feature, index) => {
     //   let format = {
     //     state_name: feature['name'],
@@ -378,7 +400,7 @@ export default {
     //   return new_json
     // })
     // console.log(segmented_states_json)
-    // this.initMap();
+    this.initMap();
     // console.log(this.map);
     // console.log(L);
   }
