@@ -9,12 +9,10 @@
     "now-build": "npm run build"
   },
   "dependencies": {
-    "firebase": "^5.8.0",
-    "jquery": "^3.3.1",
+    "firebase": "^7.19.1",
     "leaflet.markercluster": "^1.4.1",
-    "mapbox-gl": "^1.2.1",
-    "node-sass": "^4.11.0",
-    "popper.js": "^1.14.6",
+    "mapbox-gl": "^1.12.0",
+    "node-sass": "^4.14.1",
     "vue": "^2.5.21",
     "vue2-leaflet": "^1.2.3",
     "vuefire": "^1.4.5",
@@ -22,8 +20,8 @@
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.3.0",
-    "@vue/cli-plugin-eslint": "^3.3.0",
-    "@vue/cli-service": "^3.5.3",
+    "@vue/cli-plugin-eslint": "^4.5.4",
+    "@vue/cli-service": "^4.5.4",
     "babel-eslint": "^10.0.1",
     "eslint": "^5.8.0",
     "eslint-plugin-vue": "^5.0.0",
